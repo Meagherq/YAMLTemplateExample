@@ -1,0 +1,75 @@
+variables:
+  vmImageName: 'windows-2019'
+
+resources:
+  repositories:
+  - repository: DemoFunction
+    type: git
+    trigger:
+      - main
+      - release/*
+    name: QRM DevOps/DemoFunction
+
+  - repository: Pipelines
+    type: git
+    trigger: none
+    name: QRM DevOps/PipelineTemplates
+
+pool:
+  vmImage: $(vmImageName)
+
+stages:
+  - stage: build
+    displayName: Build Artifact
+    jobs:
+    - job: Build
+      displayName:  Build
+      steps:
+      - template: yaml/function-app/azure-pipelines-ci.yaml@Pipelines
+        parameters:
+          checkout: 'DemoFunction'
+          artifactName: 'demofunc'
+
+  - stage: dev
+    displayName: Dev Deploy
+    jobs:
+    - job: Deploy
+      displayName:  Dev
+      condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    - deployment: NoneDeploy
+      displayName: Deploy to Dev
+
+      environment: 
+        name: development
+      strategy:
+        runOnce:
+          deploy:
+            steps: 
+            - template: yaml/function-app/azure-pipelines-cd.yaml@Pipelines
+              parameters:
+                artifactName: demofunc
+                azureSubscription: 'DemoServiceConnection'
+                resourceGroupName: 'demo-rg-dev'
+                appName: 'demo-func-dev'
+
+  - stage: production
+    displayName: Production Deploy
+    jobs:
+    - job: Deploy
+      displayName:  production
+      condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'))
+    - deployment: NoneDeploy
+      displayName: Deploy to Production
+
+      environment: 
+        name: prod
+      strategy:
+        runOnce:
+          deploy:
+            steps: 
+            - template: yaml/function-app/azure-pipelines-cd.yaml@Pipelines
+              parameters:
+                artifactName: demofunc
+                azureSubscription: 'DemoServiceConnection'
+                resourceGroupName: 'demo-rg-prod'
+                appName: 'demo-func-prod'

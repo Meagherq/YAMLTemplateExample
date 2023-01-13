@@ -1,0 +1,27 @@
+variables:
+  vmImageName: 'windows-2019'
+
+resources:
+  repositories:
+  - repository: DemoFunction
+    type: git
+    trigger: none
+    name: mcapsqrm/DemoFunction
+
+  - repository: Pipelines
+    type: git
+    trigger: none
+    name: mcapsqrm/PipelineFragments
+
+pool:
+  vmImage: $(vmImageName)
+stages:
+  - stage: build
+    displayName: Build Artifact
+    jobs:
+    - job: Build
+      displayName:  Build
+      steps:
+      - template: yaml/function-app/azure-pipelines-build.yaml@Pipelines
+        parameters:
+          checkout: 'DemoFunction'

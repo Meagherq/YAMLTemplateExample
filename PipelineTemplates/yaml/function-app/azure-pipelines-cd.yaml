@@ -1,0 +1,47 @@
+#azure-pipelines-cd.yaml
+parameters:
+  - name: artifactName
+    type: string
+  - name: azureSubscription
+    type: string
+  - name: resourceGroupName
+    type: string
+  - name: appName
+    type: string
+    
+steps:
+  - task: AzureRmWebAppDeployment@4
+    displayName: 'Deploy Azure App Service To Secondary Slot'
+    inputs:
+      azureSubscription: ${{parameters.azureSubscription}}
+      appType: 'functionApp'
+      WebAppName: ${{parameters.appName}}
+      deployToSlotOrASE: true
+      ResourceGroupName: ${{parameters.resourceGroupName}}
+      SlotName: 'secondary-slot'
+      Package: '$(Pipeline.Workspace)/**/${{parameters.artifactName}}.zip'
+  - task: AzureAppServiceManage@0
+    displayName: 'Start Second Slot'
+    inputs:
+      azureSubscription: ${{parameters.azureSubscription}}
+      Action: 'Start Azure App Service'
+      WebAppName: ${{parameters.appName}}
+      SpecifySlotOrASE: true
+      ResourceGroupName: ${{parameters.resourceGroupName}}
+      Slot: 'secondary-slot'
+  - task: AzureAppServiceManage@0
+    displayName: 'Swap Slots'
+    inputs:
+      azureSubscription: ${{parameters.azureSubscription}}
+      WebAppName: ${{parameters.appName}}
+      ResourceGroupName: ${{parameters.resourceGroupName}}
+      SourceSlot: 'secondary-slot'
+  - task: AzureAppServiceManage@0
+    displayName: 'Stop Azure App Service: ${{parameters.appName}}'
+    inputs:
+      azureSubscription: ${{parameters.azureSubscription}}
+      Action: 'Stop Azure App Service'
+      WebAppName: ${{parameters.appName}}
+      SpecifySlotOrASE: true
+      ResourceGroupName: ${{parameters.resourceGroupName}}
+      Slot: 'secondary-slot'

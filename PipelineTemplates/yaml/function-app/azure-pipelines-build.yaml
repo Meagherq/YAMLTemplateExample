@@ -1,0 +1,18 @@
+#azure-pipelines-build.yaml
+parameters:
+  checkout: ''
+
+steps: 
+- checkout: ${{parameters.checkout}}
+
+- task: DotNetCoreCLI@2
+  displayName: Dotnet Restore
+  inputs:
+    command: restore
+    projects: '**/*.csproj'
+- task: DotNetCoreCLI@2
+  displayName: Build
+  inputs:
+    command: 'build'
+    projects: '$(Build.SourcesDirectory)/**/*.csproj'
+    arguments: '--output $(System.DefaultWorkingDirectory)/publish_output --configuration Release'

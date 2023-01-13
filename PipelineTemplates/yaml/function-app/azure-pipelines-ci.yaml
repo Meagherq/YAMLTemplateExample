@@ -1,0 +1,34 @@
+#azure-pipelines-ci.yaml
+parameters:
+  - name: artifactName
+    type: string
+  - name: checkout
+    type: string
+
+steps: 
+- checkout: ${{parameters.checkout}}
+
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet restore'
+  inputs:
+    command: restore
+    projects: '**/*.csproj'
+- task: DotNetCoreCLI@2
+  displayName: Build stage
+  inputs:
+    command: 'build'
+    projects: '$(Build.SourcesDirectory)/**/*.csproj'
+    arguments: '--output $(System.DefaultWorkingDirectory)/publish_output --configuration Release'
+- task: ArchiveFiles@2
+  displayName: "Archive files"
+  inputs:
+    rootFolderOrFile: "$(System.DefaultWorkingDirectory)/publish_output"
+    includeRootFolder: false
+    archiveType: zip
+    archiveFile: $(Build.ArtifactStagingDirectory)/${{parameters.artifactName}}.zip
+    replaceExistingArchive: true
+- task: PublishPipelineArtifact@1
+  displayName: 'Publish Artifact'
+  inputs:
+    targetPath: '$(build.artifactstagingdirectory)'
+    artifactName: ${{parameters.artifactName}}
