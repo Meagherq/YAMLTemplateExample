@@ -1,0 +1,21 @@
+#azure-pipelines-cd.yamldatabaseName
+parameters:
+  - name: serverName
+    type: string
+  - name: databaseName
+    type: string
+  - name: solutionName
+    type: string
+  - name: environment
+    type: string
+    
+steps:
+- script: |
+   "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/Common7/IDE/Extensions/Microsoft/SQLDB/DAC/150/sqlpackage.exe" /a:Extract /scs:"Server=tcp:${{parameters.serverName}}.database.windows.net;Initial Catalog=${{parameters.databaseName}};User ID=sqladmin;Password=$(DB_PASSWORD);MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;" /tf:"$(Pipeline.Workspace)/drop/${{parameters.solutionName}}/bin/$(BuildConfiguration)/baseline_${{parameters.environment}}.dacpac" /p:Storage=Memory /p:CommandTimeout=600
+  displayName: ExtractBaseDACPAC
+- script: |
+   "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/Common7/IDE/Extensions/Microsoft/SQLDB/DAC/150/sqlpackage.exe" /a:Script /tf:"$(Pipeline.Workspace)/drop/${{parameters.solutionName}}/bin/$(BuildConfiguration)/baseline_${{parameters.environment}}.dacpac" /sf:"$(Pipeline.Workspace)/drop/${{parameters.solutionName}}/bin/$(BuildConfiguration)/${{parameters.solutionName}}.dacpac" /tdn:${{parameters.databaseName}} /op:"$(Pipeline.Workspace)/drop/${{parameters.solutionName}}/bin/$(BuildConfiguration)/${{parameters.solutionName}}_$${parameters.environment}.sql" /p:Storage=Memory /p:DropObjectsNotInSource=False /p:ExcludeObjectTypes=Aggregates;ApplicationRoles;Assemblies;AsymmetricKeys;BrokerPriorities;Certificates;ColumnEncryptionKeys;ColumnMasterKeys;Contracts;DatabaseRoles;DatabaseTriggers;Defaults;ExtendedProperties;ExternalDataSources;ExternalFileFormats;ExternalTables;Filegroups;FileTables;FullTextCatalogs;FullTextStoplists;MessageTypes;PartitionFunctions;PartitionSchemes;Permissions;Queues;RemoteServiceBindings;RoleMembership;Rules;SearchPropertyLists;SecurityPolicies;Sequences;Services;Signatures;SymmetricKeys;Synonyms;TableValuedFunctions;UserDefinedDataTypes;UserDefinedTableTypes;ClrUserDefinedTypes;Users;XmlSchemaCollections;Audits;Credentials;CryptographicProviders;DatabaseAuditSpecifications;DatabaseScopedCredentials;Endpoints;ErrorMessages;EventNotifications;EventSessions;LinkedServerLogins;LinkedServers;Logins;Routes;ServerAuditSpecifications;ServerRoleMembership;ServerRoles;ServerTriggers /p:BlockOnPossibleDataLoss=False /p:DropStatisticsNotInSource=False
+  displayName: GetSqlScript
+- script: |
+   "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/Common7/IDE/Extensions/Microsoft/SQLDB/DAC/150/sqlpackage.exe" /a:Publish /sf:"$(Pipeline.Workspace)/drop/${{parameters.solutionName}}/bin/$(BuildConfiguration)/${{parameters.solutionName}}.dacpac" /tcs:"Server=tcp:${{parameters.serverName}}.database.windows.net;Initial Catalog=${{parameters.databaseName}};User ID=sqladmin;Password=$(DB_PASSWORD);MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;" 
+  displayName: PublishDacPac

@@ -1,0 +1,26 @@
+#azure-pipelines-ci.yaml
+parameters:
+  - name: checkout
+    type: string
+
+steps: 
+- checkout: ${{parameters.checkout}}
+- task: VSBuild@1
+  displayName: 'Build QRM.sln'
+  inputs:
+    solution: $(System.DefaultWorkingDirectory)/*.sln
+    vsVersion: "16.0"
+    msbuildArgs: '/warnaserror:MSB4078'
+    configuration: Debug
+- task: PublishSymbols@2
+  displayName: 'Publish symbols path'
+  inputs:
+    SearchPattern: '**\bin\**\*.pdb'
+    PublishSymbols: false
+  enabled: false
+  continueOnError: true
+- task: PublishPipelineArtifact@1
+  displayName: 'Publish Artifact'
+  inputs:
+    targetPath: '$(System.DefaultWorkingDirectory)'
+    artifactName: drop
